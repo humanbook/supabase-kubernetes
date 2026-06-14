@@ -76,6 +76,8 @@ spec:
             {{- if .Values.deployment.db.enabled }}
             - name: POSTGRES_HOST
               value: {{ include "supabase.db.fullname" . }}
+            {{- else }}
+            {{- include "supabase.db.hostEnv" (dict "root" . "name" "POSTGRES_HOST") | nindent 12 }}
             {{- end }}
 
             - name: POSTGRES_DB

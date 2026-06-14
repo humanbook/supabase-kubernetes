@@ -85,14 +85,14 @@ secret:
   ## Required even when using an external database
   ##
   db:
-    password: "your-super-secret-and-long-postgres-password"
+    password: "postgres"
     database: "postgres"
 
     ## External database host/port (used when deployment.db.enabled is false).
     ## Host and port are required when using an external database.
     ## Ignored when deployment.db.enabled is true (internal DB service is used).
-    host: ""
-    port: ""
+    host: "192.168.49.3"
+    port: "5432"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -164,8 +164,8 @@ secret:
   ## S3-compatible credentials
   ##
   s3:
-    keyId: "625729a08b95bf1b7ff351a663f3a23c"
-    accessKey: "850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907"
+    keyId: "<YOUR_OSS_ACCESS_KEY_ID>"
+    accessKey: "<YOUR_OSS_ACCESS_KEY_SECRET>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -220,7 +220,7 @@ secret:
 
 deployment:
   analytics:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
@@ -268,7 +268,7 @@ deployment:
     volumes: {}
 
   db:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
@@ -510,7 +510,7 @@ deployment:
     volumes: {}
 
   vector:
-    enabled: true
+    enabled: false
     replicaCount: 1
     nameOverride: ""
     fullnameOverride: ""
@@ -761,8 +761,12 @@ environment:
     FILE_SIZE_LIMIT: "52428800"
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
-    REGION: stub
-    GLOBAL_S3_BUCKET: stub
+    STORAGE_BACKEND: s3
+    GLOBAL_S3_ENDPOINT: "https://oss-cn-shanghai.aliyuncs.com"
+    GLOBAL_S3_PROTOCOL: "https"
+    GLOBAL_S3_FORCE_PATH_STYLE: "false"
+    REGION: "oss-cn-shanghai"
+    GLOBAL_S3_BUCKET: "fluffyconnect-work"
     ENABLE_IMAGE_TRANSFORMATION: "true"
 
   studio:

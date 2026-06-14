@@ -20,3 +20,6 @@ DO $$ BEGIN
     GRANT ALL ON ALL ROUTINES IN SCHEMA storage TO dashboard_user;
   END IF;
 END $$;
+
+-- Storage admin role grants (required for RLS set_config in PG18)
+GRANT anon, authenticated, service_role TO supabase_storage_admin;
