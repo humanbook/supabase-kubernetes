@@ -1,0 +1,2 @@
+# Environment-specific values (contain secrets: DB passwords, JWT keys, S3 creds)
+charts/supabase/values-jp.yaml

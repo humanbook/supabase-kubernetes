@@ -11,16 +11,28 @@ GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 -- Auth helper functions (owned by supabase_auth_admin to avoid permission issues)
 SET ROLE supabase_auth_admin;
 
+-- Dual-format JWT claim support: PostgREST <=12 sets single-value GUCs
+-- (request.jwt.claim.sub), but v13+ only sets request.jwt.claims (JSON).
+-- Fall back to JSON so auth.uid() works across all PostgREST versions.
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
-  SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+  SELECT coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid;
 $$ LANGUAGE sql STABLE;
 
 CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $$
-  SELECT nullif(current_setting('request.jwt.claim.role', true), '')::text;
+  SELECT coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text;
 $$ LANGUAGE sql STABLE;
 
 CREATE OR REPLACE FUNCTION auth.email() RETURNS text AS $$
-  SELECT nullif(current_setting('request.jwt.claim.email', true), '')::text;
+  SELECT coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text;
 $$ LANGUAGE sql STABLE;
 
 RESET ROLE;

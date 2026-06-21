@@ -111,6 +111,12 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.secret.jwt.name" . }}
                   key: {{ include "supabase.secret.jwt.key.secret" . }}
+            # Required since Realtime v2.x (e.g. v2.110.0); boot fails without it
+            - name: METRICS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.secret.jwt.name" . }}
+                  key: {{ include "supabase.secret.jwt.key.secret" . }}
             {{- if or .Values.secret.apikey.secretRef .Values.secret.apikey.jwtJwks }}
             - name: API_JWT_JWKS
               valueFrom:
