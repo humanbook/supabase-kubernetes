@@ -1,3 +1,12 @@
+## ⚠️ 示例配置（脱敏版）—— 所有 <...> 占位符需替换为真实值后使用
+## 真实值参考 values-jp.yaml（已 gitignore，含密钥）。
+## 密钥生成：
+##   jwt.secret: openssl rand -base64 32
+##   realtime.secretKeyBase: openssl rand -base64 64
+##   meta.cryptoKey: openssl rand -hex 32
+##   SMS_HOOK_SECRET: v1,whsec_$(openssl rand -base64 32)
+##   APPLE_SECRET: 用 .p8 私钥签 ES256 JWT（见 supabase-migration.md）
+##
 ## Supabase Helm Chart Configuration
 ##
 ## Supabase is composed of multiple services running together
@@ -45,9 +54,9 @@ secret:
   ## Docs: https://supabase.com/docs/guides/self-hosting/docker#generate-and-configure-api-keys
   ##
   jwt:
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
-    serviceKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
-    secret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+    anonKey: "<JWT_ANON_KEY>"
+    serviceKey: "<JWT_SERVICE_KEY>"
+    secret: "<JWT_SECRET_min32chars>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -85,13 +94,13 @@ secret:
   ## Required even when using an external database
   ##
   db:
-    password: "postgres"
-    database: "postgres"
+    password: "<DB_PASSWORD>"
+    database: "supabase_db"
 
     ## External database host/port (used when deployment.db.enabled is false).
     ## Host and port are required when using an external database.
     ## Ignored when deployment.db.enabled is true (internal DB service is used).
-    host: "192.168.49.3"
+    host: "<DB_HOST.rds.aliyuncs.com>"
     port: "5432"
 
     ## Reference to existing secret
@@ -107,8 +116,8 @@ secret:
   ## Logflare credentials
   ##
   analytics:
-    publicAccessToken: "your-super-secret-and-long-logflare-key-public"
-    privateAccessToken: "your-super-secret-and-long-logflare-key-private"
+    publicAccessToken: "<LOGFLARE_PUBLIC_TOKEN>"
+    privateAccessToken: "<LOGFLARE_PRIVATE_TOKEN>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -135,7 +144,7 @@ secret:
   ##
   smtp:
     username: "fake_mail_user"
-    password: "fake_mail_password"
+    password: "<SMTP_PASSWORD>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -149,8 +158,8 @@ secret:
   ##
   dashboard:
     username: "supabase"
-    password: "this_password_is_insecure_and_should_be_updated"
-    openAiApiKey: "key_super_secret"
+    password: "<DASHBOARD_PASSWORD>"
+    openAiApiKey: "<OPENAI_API_KEY>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -164,8 +173,8 @@ secret:
   ## S3-compatible credentials
   ##
   s3:
-    keyId: "<YOUR_OSS_ACCESS_KEY_ID>"
-    accessKey: "<YOUR_OSS_ACCESS_KEY_SECRET>"
+    keyId: "<OSS_ACCESS_KEY_ID>"
+    accessKey: "<OSS_ACCESS_KEY_SECRET>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -182,7 +191,7 @@ secret:
     ## Used by Supabase Realtime (Phoenix) to sign and encrypt internal data,
     ## sessions and tokens. Equivalent to Phoenix SECRET_KEY_BASE.
     ## Generate with: openssl rand -base64 64
-    secretKeyBase: "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq"
+    secretKeyBase: "<REALTIME_SECRET_KEY_BASE_openssl_rand_base64_64>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -197,7 +206,7 @@ secret:
   meta:
     ## Used to encrypt sensitive metadata at rest.
     ## Generate with: openssl rand -hex 32
-    cryptoKey: "your-encryption-key-32-chars-min"
+    cryptoKey: "<META_CRYPTO_KEY_openssl_rand_hex_32>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -208,7 +217,7 @@ secret:
 
   minio:
     user: supa-storage
-    password: secret1234
+    password: "<MINIO_PASSWORD>"
 
     ## Reference to existing secret
     # secretRef: ""
@@ -264,8 +273,19 @@ deployment:
     startupProbe: {}
     lifecycle: {}
     resources: {}
-    volumeMounts: []
-    volumes: []
+    # 挂载 cert-manager 内网 CA，让 GoTrue 信任 chripchrip-server 内网 HTTPS（SMS hook）
+    # 配合 environment.auth.SSL_CERT_DIR；internal-ca-secret 由 deploy/cert-manager.yaml 生成
+    volumeMounts:
+      - name: internal-ca
+        mountPath: /etc/ssl/certs/internal
+        readOnly: true
+    volumes:
+      - name: internal-ca
+        secret:
+          secretName: internal-ca-secret
+          items:
+            - key: ca.crt
+              path: ca.crt
 
   db:
     enabled: false
@@ -543,7 +563,7 @@ image:
   auth:
     repository: supabase/gotrue
     pullPolicy: IfNotPresent
-    tag: "v2.186.0"
+    tag: "v2.190.0"
     pullSecrets: []
 
   db:
@@ -585,6 +605,9 @@ image:
   realtime:
     repository: supabase/realtime
     pullPolicy: IfNotPresent
+    ## Pinned to v2.76.5: v2.110.0 requires METRICS_JWT_SECRET + db_pass_realtime
+    ## and changes the tenant connection model (uses supabase_realtime_admin直连),
+    ## causing 28P01 / boot failures. See migrate-log.md.
     tag: "v2.76.5"
     pullSecrets: []
 
@@ -597,7 +620,7 @@ image:
   storage:
     repository: supabase/storage-api
     pullPolicy: IfNotPresent
-    tag: "v1.48.26"
+    tag: "v1.60.25"
     pullSecrets: []
 
   studio:
@@ -639,10 +662,14 @@ environment:
     DB_DRIVER: postgres
     ## SSL mode options: disable, allow, prefer, require, verify-ca, verify-full
     DB_SSL: disable
-    API_EXTERNAL_URL: http://supabase.local
+    ## Set false when migrating an existing DB whose auth schema is already
+    ## populated. GoTrue's pop ORM otherwise tries CREATE TABLE schema_migrations
+    ## and fails if the table exists / has wrong owner.
+    GOTRUE_DB_AUTOMIGRATE: "false"
+    API_EXTERNAL_URL: https://<YOUR_API_DOMAIN>
     GOTRUE_API_HOST: "0.0.0.0"
     GOTRUE_API_PORT: "9999"
-    GOTRUE_SITE_URL: http://supabase.local
+    GOTRUE_SITE_URL: https://<YOUR_API_DOMAIN>
     GOTRUE_URI_ALLOW_LIST: "*"
     GOTRUE_DISABLE_SIGNUP: "false"
     GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
@@ -657,9 +684,16 @@ environment:
     GOTRUE_SMTP_ADMIN_EMAIL: "SMTP_ADMIN_MAIL"
     GOTRUE_SMTP_HOST: "SMTP_HOST"
     GOTRUE_SMTP_PORT: "123"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+    GOTRUE_EXTERNAL_PHONE_ENABLED: "true"
     GOTRUE_SMS_AUTOCONFIRM: "false"
     GOTRUE_SMTP_SENDER_NAME: "SMTP_SENDER_NAME"
+    ## 信任 cert-manager 内网 CA（追加，不覆盖系统公网 CA）；配合 deployment.auth.volumes
+    SSL_CERT_DIR: "/etc/ssl/certs/internal"
+    ## SMS hook → chripchrip-server 内网 HTTPS（阿里云短信）
+    GOTRUE_HOOK_SEND_SMS_ENABLED: "true"
+    GOTRUE_HOOK_SEND_SMS_URI: "https://<sms-service>.<namespace>.svc.cluster.local:8443/hooks/send-sms"
+    ## ⚠️ 与 chripchrip-sms-secret 的 SMS_HOOK_SECRET 必须一致（standard-webhooks 验签密钥）
+    GOTRUE_HOOK_SEND_SMS_SECRETS: "v1,whsec_<BASE64_SECRET>"
     GOTRUE_MAILER_URLPATHS_INVITE: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/auth/v1/verify"
     GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
@@ -675,10 +709,20 @@ environment:
     # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI: "pg-functions://postgres/public/password_verification_attempt"
     # GOTRUE_HOOK_SEND_SMS_ENABLED: "false"
     # GOTRUE_HOOK_SEND_SMS_URI: "pg-functions://postgres/public/custom_access_token_hook"
-    # GOTRUE_HOOK_SEND_SMS_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
+    # GOTRUE_HOOK_SEND_SMS_SECRETS: "v1,whsec_<BASE64_SECRET>"
     # GOTRUE_HOOK_SEND_EMAIL_ENABLED: "false"
     # GOTRUE_HOOK_SEND_EMAIL_URI: "http://host.docker.internal:54321/functions/v1/email_sender"
     # GOTRUE_HOOK_SEND_EMAIL_SECRETS: "v1,whsec_VGhpcyBpcyBhbiBleGFtcGxlIG9mIGEgc2hvcnRlciBCYXNlNjQgc3RyaW5n"
+    GOTRUE_EXTERNAL_GOOGLE_ENABLED: "true"
+    GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: "<GOOGLE_CLIENT_ID>.apps.googleusercontent.com"
+    GOTRUE_EXTERNAL_GOOGLE_SECRET: "<GOOGLE_CLIENT_SECRET>"  # 这就是 client secret
+    GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "https://<YOUR_API_DOMAIN>/auth/v1/callback"
+    # Apple Sign In（iOS 原生流 + 网页流）
+    GOTRUE_EXTERNAL_APPLE_ENABLED: "true"
+    # CLIENT_ID 列出所有合法 aud：Bundle ID（iOS 原生 token aud）+ Services ID（secret JWT 的 sub）
+    GOTRUE_EXTERNAL_APPLE_CLIENT_ID: "<APP_BUNDLE_ID>,<APPLE_SERVICES_ID>"
+    # ⚠️ SECRET 是用 .p8 私钥签发的 ES256 JWT（sub=<APPLE_SERVICES_ID>），exp=2026-07 到期需重新生成
+    GOTRUE_EXTERNAL_APPLE_SECRET: "<APPLE_CLIENT_SECRET_ES256_JWT>"
 
   db:
     POSTGRES_HOST: /var/run/postgresql
@@ -734,7 +778,7 @@ environment:
     FLY_APP_NAME: realtime
     ENABLE_TAILSCALE: "false"
     DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DB_ENC_KEY: supabaserealtime
+    DB_ENC_KEY: "<REALTIME_DB_ENC_KEY>"
     ERL_AFLAGS: -proto_dist inet_tcp
     DNS_NODES: "''"
     RLIMIT_NOFILE: "10000"
@@ -749,6 +793,9 @@ environment:
     DB_SSL: disable
     PGRST_DB_SCHEMAS: public,storage,graphql_public
     PGRST_DB_ANON_ROLE: anon
+    ## PostgREST v14 dropped legacy single-value GUCs (request.jwt.claim.sub).
+    ## Real fix lives in the DB: auth.uid()/role()/email()/jwt() must read from
+    ## request.jwt.claims (JSON) — see migrate-log.md. This flag is a no-op on v14.
     PGRST_DB_USE_LEGACY_GUCS: false
     PGRST_APP_SETTINGS_JWT_EXP: 3600
 
@@ -762,11 +809,11 @@ environment:
     FILE_STORAGE_BACKEND_PATH: /var/lib/storage
     TENANT_ID: stub
     STORAGE_BACKEND: s3
-    GLOBAL_S3_ENDPOINT: "https://oss-cn-shanghai.aliyuncs.com"
+    GLOBAL_S3_ENDPOINT: "https://oss-ap-northeast-1.aliyuncs.com"
     GLOBAL_S3_PROTOCOL: "https"
     GLOBAL_S3_FORCE_PATH_STYLE: "false"
-    REGION: "oss-cn-shanghai"
-    GLOBAL_S3_BUCKET: "fluffyconnect-work"
+    REGION: "oss-ap-northeast-1"
+    GLOBAL_S3_BUCKET: "supabase-prod"
     ENABLE_IMAGE_TRANSFORMATION: "true"
 
   studio:
@@ -775,7 +822,7 @@ environment:
     POSTGRES_PORT: 5432
     DEFAULT_ORGANIZATION_NAME: Default Organization
     DEFAULT_PROJECT_NAME: Default Project
-    SUPABASE_PUBLIC_URL: http://supabase.local
+    SUPABASE_PUBLIC_URL: https://<YOUR_API_DOMAIN>
     NEXT_PUBLIC_ENABLE_LOGS: true
     ## Set value to bigquery to use Big Query backend for analytics (postgres or bigquery)
     NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
@@ -893,7 +940,7 @@ service:
     portName: http
 
   kong:
-    type: ClusterIP
+    type: NodePort
     port: 8000
     targetPort: 8000
     protocol: TCP
@@ -1058,9 +1105,9 @@ autoscaling:
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: "alb"
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/rewrite-target: /
     # cert-manager.io/cluster-issuer: "letsencrypt-staging"
     # kubernetes.io/tls-acme: "true"
   tls: []
@@ -1071,7 +1118,7 @@ ingress:
     #   hosts:
     #     - example.com
   hosts:
-    - host: supabase.local
+    - host: <YOUR_API_DOMAIN>
       paths:
         - path: /
           pathType: Prefix
