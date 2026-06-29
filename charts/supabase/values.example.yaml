@@ -815,6 +815,12 @@ environment:
     REGION: "oss-ap-northeast-1"
     GLOBAL_S3_BUCKET: "supabase-prod"
     ENABLE_IMAGE_TRANSFORMATION: "true"
+    ## Aliyun OSS (and other non-AWS S3) reject the AWS SDK v3 default
+    ## STREAMING-UNSIGNED-PAYLOAD-TRAILER checksum encoding used by TUS/resumable
+    ## uploads ("NotImplemented: Aws MultiChunkedEncoding ... is not supported").
+    ## Disable automatic checksums so streaming uploads work against OSS.
+    AWS_REQUEST_CHECKSUM_CALCULATION: "WHEN_REQUIRED"
+    AWS_RESPONSE_CHECKSUM_VALIDATION: "WHEN_REQUIRED"
 
   studio:
     HOSTNAME: "::"

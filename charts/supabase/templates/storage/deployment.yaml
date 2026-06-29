@@ -127,16 +127,19 @@ spec:
                 "file"
               {{- end }}
 
-            {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled }}
+            {{- if or .Values.secret.s3.secretRef .Values.deployment.minio.enabled .Values.secret.s3.keyId }}
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
                   {{- if .Values.secret.s3.secretRef }}
                   name: {{ include "supabase.secret.s3.name" . | quote }}
                   key: {{ include "supabase.secret.s3.key.keyId" . | quote }}
-                  {{- else }}
+                  {{- else if .Values.deployment.minio.enabled }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.user" . }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.s3.name" . | quote }}
+                  key: keyId
                   {{- end }}
 
             - name: AWS_SECRET_ACCESS_KEY
@@ -145,9 +148,12 @@ spec:
                   {{- if .Values.secret.s3.secretRef }}
                   name: {{ include "supabase.secret.s3.name" . | quote }}
                   key: {{ include "supabase.secret.s3.key.accessKey" . | quote }}
-                  {{- else }}
+                  {{- else if .Values.deployment.minio.enabled }}
                   name: {{ include "supabase.secret.minio.name" . }}
                   key: {{ include "supabase.secret.minio.key.password" . }}
+                  {{- else }}
+                  name: {{ include "supabase.secret.s3.name" . | quote }}
+                  key: accessKey
                   {{- end }}
             {{- end }}
 
